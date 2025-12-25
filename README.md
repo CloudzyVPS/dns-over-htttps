@@ -1,33 +1,33 @@
-# doh.cloudzy.com — Mail Server Troubleshooting & Best Practices (mail.cloudzy.com)
+# dns.cloudzy.com — Mail Server Troubleshooting & Best Practices (mail.cloudzy.com)
 
-This guide helps administrators and operators of the mail server at **mail.cloudzy.com** to validate DNS, deliverability, and anti‑abuse posture using `doh.cloudzy.com` (our live DNS-over-HTTPS service). It focuses on practical checks you can run from the shell, explains what the results mean, and gives remediation tips.
+This guide helps administrators and operators of the mail server at **mail.cloudzy.com** to validate DNS, deliverability, and anti‑abuse posture using `dns.cloudzy.com` (our live DNS-over-HTTPS service). It focuses on practical checks you can run from the shell, explains what the results mean, and gives remediation tips.
 
 ---
 
-## Quick note: using doh.cloudzy.com 🔎
-Our DoH endpoint is live at: **https://doh.cloudzy.com**
+## Quick note: using dns.cloudzy.com 🔎
+Our DoH endpoint is live at: **https://dns.cloudzy.com**
 
 Examples use both the JSON DoH endpoint and `kdig`'s DoH support. Replace examples where needed if you prefer a different DoH client.
 
 - JSON (human-readable):
-  - curl "https://doh.cloudzy.com/dns-json?name=mail.cloudzy.com&type=A"
+  - curl "https://dns.cloudzy.com/dns-json?name=mail.cloudzy.com&type=A"
 - Wire-format (kdig):
-  - kdig +https @doh.cloudzy.com mail.cloudzy.com A
+  - kdig +https @dns.cloudzy.com mail.cloudzy.com A
 
 ---
 
 ## Using DoH — practical examples & client configuration 🛠️
-This section shows common ways to *use* DoH with tools and platforms so you can query DNS securely via `doh.cloudzy.com`.
+This section shows common ways to *use* DoH with tools and platforms so you can query DNS securely via `dns.cloudzy.com`.
 
 ### Curl (use system resolver over DoH)
 curl supports doing DNS resolution via a DoH server for the requests it makes. This is useful for testing how a host resolves when using DoH:
 
 ```bash
-# Make an HTTP request using doh.cloudzy.com for DNS resolution
-curl --doh-url "https://doh.cloudzy.com/dns-query" -I https://mail.cloudzy.com
+# Make an HTTP request using dns.cloudzy.com for DNS resolution
+curl --doh-url "https://dns.cloudzy.com/dns-query" -I https://mail.cloudzy.com
 
 # Direct DNS lookup via curl's DOH endpoint (JSON path)
-curl "https://doh.cloudzy.com/dns-json?name=mail.cloudzy.com&type=A"
+curl "https://dns.cloudzy.com/dns-json?name=mail.cloudzy.com&type=A"
 ```
 
 Note: `--doh-url` makes curl perform normal HTTP(S) requests while resolving hostnames using the specified DoH server.
@@ -37,20 +37,20 @@ kdig supports DoH via `+https` and is handy for wire-format validation and PTR c
 
 ```bash
 # A record over DoH (wire-format)
-kdig +https @doh.cloudzy.com mail.cloudzy.com A
+kdig +https @dns.cloudzy.com mail.cloudzy.com A
 
 # PTR (reverse) lookup over DoH; resolve the host to its IP using DoH and then reverse-lookup that IP via DoH
-kdig +https @doh.cloudzy.com -x $(kdig +https @doh.cloudzy.com +short mail.cloudzy.com A)
+kdig +https @dns.cloudzy.com -x $(kdig +https @dns.cloudzy.com +short mail.cloudzy.com A)
 ```
 
 If you prefer the JSON DoH API, use the `/dns-json` endpoint with curl as shown above.
 
 ### System & browser configuration (quick pointers)
-- **Firefox:** Preferences → Network Settings → Enable DNS over HTTPS → Custom → Enter `https://doh.cloudzy.com/dns-query` and enable it.
-- **Chrome / Chromium:** Chrome typically uses your OS DoH settings; on some platforms you can set a custom provider URL or use an enterprise policy to point to `https://doh.cloudzy.com/dns-query`.
-- **Windows 11:** Settings → Network & Internet → Advanced network settings → DNS over HTTPS → choose Custom and enter `https://doh.cloudzy.com/dns-query`.
-- **macOS:** In recent macOS versions you can configure Secure DNS through Network settings or use a profile that sets a DoH resolver pointing to `https://doh.cloudzy.com/dns-query`.
-- **Android (9+):** Private DNS settings often accept a provider hostname — use `doh.cloudzy.com` or a compatible provider template if the UI allows specifying a DoH endpoint.
+- **Firefox:** Preferences → Network Settings → Enable DNS over HTTPS → Custom → Enter `https://dns.cloudzy.com/dns-query` and enable it.
+- **Chrome / Chromium:** Chrome typically uses your OS DoH settings; on some platforms you can set a custom provider URL or use an enterprise policy to point to `https://dns.cloudzy.com/dns-query`.
+- **Windows 11:** Settings → Network & Internet → Advanced network settings → DNS over HTTPS → choose Custom and enter `https://dns.cloudzy.com/dns-query`.
+- **macOS:** In recent macOS versions you can configure Secure DNS through Network settings or use a profile that sets a DoH resolver pointing to `https://dns.cloudzy.com/dns-query`.
+- **Android (9+):** Private DNS settings often accept a provider hostname — use `dns.cloudzy.com` or a compatible provider template if the UI allows specifying a DoH endpoint.
 
 ### How to verify traffic is using DoH
 - Use `curl -v --doh-url ...` and observe DNS resolution behavior. You can also instrument the server side or use network telemetry to confirm DNS requests are not sent over plain UDP to external resolvers.
@@ -62,21 +62,21 @@ If you prefer the JSON DoH API, use the `/dns-json` endpoint with curl as shown 
 Verify the obvious first: A/AAAA, MX, and TXT records.
 
 - A/AAAA (IP address):
-  - curl "https://doh.cloudzy.com/dns-json?name=mail.cloudzy.com&type=A"
-  - kdig +https @doh.cloudzy.com mail.cloudzy.com A
+  - curl "https://dns.cloudzy.com/dns-json?name=mail.cloudzy.com&type=A"
+  - kdig +https @dns.cloudzy.com mail.cloudzy.com A
 
 - MX (mail exchanger) records:
-  - curl "https://doh.cloudzy.com/dns-json?name=cloudzy.com&type=MX"
-  - kdig +https @doh.cloudzy.com cloudzy.com MX
+  - curl "https://dns.cloudzy.com/dns-json?name=cloudzy.com&type=MX"
+  - kdig +https @dns.cloudzy.com cloudzy.com MX
 
 - SPF (TXT):
-  - curl "https://doh.cloudzy.com/dns-json?name=cloudzy.com&type=TXT"  # check SPF and other TXT
+  - curl "https://dns.cloudzy.com/dns-json?name=cloudzy.com&type=TXT"  # check SPF and other TXT
 
 - DMARC (TXT):
-  - curl "https://doh.cloudzy.com/dns-json?name=_dmarc.cloudzy.com&type=TXT"
+  - curl "https://dns.cloudzy.com/dns-json?name=_dmarc.cloudzy.com&type=TXT"
 
 - DKIM (selector) example:
-  - curl "https://doh.cloudzy.com/dns-json?name=default._domainkey.cloudzy.com&type=TXT"
+  - curl "https://dns.cloudzy.com/dns-json?name=default._domainkey.cloudzy.com&type=TXT"
   - (replace `default` with your DKIM selector)
 
 What to look for:
@@ -95,18 +95,18 @@ Many receiving MTAs check reverse DNS to help fight spam. For email delivery it'
 
 ```bash
 # Using doh (JSON):
-curl -s "https://doh.cloudzy.com/dns-json?name=mail.cloudzy.com&type=A" | jq
+curl -s "https://dns.cloudzy.com/dns-json?name=mail.cloudzy.com&type=A" | jq
 # Or with kdig (wire):
-kdig +https @doh.cloudzy.com mail.cloudzy.com A
+kdig +https @dns.cloudzy.com mail.cloudzy.com A
 ```
 
 2. Query PTR for that IP (kdig example):
 
 ```bash
 # Suppose IP is 203.0.113.45
-kdig +https @doh.cloudzy.com -x 203.0.113.45
+kdig +https @dns.cloudzy.com -x 203.0.113.45
 # Or JSON lookup via our DoH endpoint:
-curl "https://doh.cloudzy.com/dns-json?name=45.113.0.203.in-addr.arpa&type=PTR"
+curl "https://dns.cloudzy.com/dns-json?name=45.113.0.203.in-addr.arpa&type=PTR"
 ```
 
 Checks to pass:
@@ -124,7 +124,7 @@ Example (DoH JSON):
 
 ```bash
 # Reverse the IP octets and query Spamhaus ZEN using our DoH JSON API (example IP 203.0.113.45):
-curl -s "https://doh.cloudzy.com/dns-json?name=45.113.0.203.zen.spamhaus.org&type=A" | jq -r '.Answer[].data // empty'
+curl -s "https://dns.cloudzy.com/dns-json?name=45.113.0.203.zen.spamhaus.org&type=A" | jq -r '.Answer[].data // empty'
 ```
 
 Interpretation:
@@ -171,24 +171,24 @@ Here are compact commands that combine checks:
 - Basic DNS snapshot (A, MX, TXT):
 
 ```bash
-curl -s "https://doh.cloudzy.com/dns-json?name=mail.cloudzy.com&type=A"
-curl -s "https://doh.cloudzy.com/dns-json?name=cloudzy.com&type=MX"
-curl -s "https://doh.cloudzy.com/dns-json?name=cloudzy.com&type=TXT"
+curl -s "https://dns.cloudzy.com/dns-json?name=mail.cloudzy.com&type=A"
+curl -s "https://dns.cloudzy.com/dns-json?name=cloudzy.com&type=MX"
+curl -s "https://dns.cloudzy.com/dns-json?name=cloudzy.com&type=TXT"
 ```
 
 - PTR + forward-confirmation (replace <ip>):
 
 ```bash
 # PTR
-kdig +https @doh.cloudzy.com -x <ip>
+kdig +https @dns.cloudzy.com -x <ip>
 # Forward check
-kdig +https @doh.cloudzy.com A $(kdig +short -x <ip> | head -n1)
+kdig +https @dns.cloudzy.com A $(kdig +short -x <ip> | head -n1)
 ```
 
 - Spamhaus quick test (replace <ip>):
 
 ```bash
-curl -s "https://doh.cloudzy.com/dns-json?name=$(echo <ip> | awk -F. '{print $4"."$3"."$2"."$1".zen.spamhaus.org"}')&type=A" | jq -r '.Answer[].data // empty'
+curl -s "https://dns.cloudzy.com/dns-json?name=$(echo <ip> | awk -F. '{print $4"."$3"."$2"."$1".zen.spamhaus.org"}')&type=A" | jq -r '.Answer[].data // empty'
 ```
 
 ---
@@ -210,13 +210,13 @@ For delisting requests from RBL operators, follow each operator's delisting proc
 
 ```bash
 # A record
-curl "https://doh.cloudzy.com/dns-json?name=mail.cloudzy.com&type=A"
+curl "https://dns.cloudzy.com/dns-json?name=mail.cloudzy.com&type=A"
 # MX record
-curl "https://doh.cloudzy.com/dns-json?name=cloudzy.com&type=MX"
+curl "https://dns.cloudzy.com/dns-json?name=cloudzy.com&type=MX"
 # PTR (reverse) — do a DoH forward resolution then reverse-lookup using DoH
-kdig +https @doh.cloudzy.com -x $(curl -s "https://doh.cloudzy.com/dns-json?name=mail.cloudzy.com&type=A" | jq -r '.Answer[0].data')
+kdig +https @dns.cloudzy.com -x $(curl -s "https://dns.cloudzy.com/dns-json?name=mail.cloudzy.com&type=A" | jq -r '.Answer[0].data')
 # Spamhaus ZEN test (DoH JSON)
-curl -s "https://doh.cloudzy.com/dns-json?name=45.113.0.203.zen.spamhaus.org&type=A" | jq -r '.Answer[].data // empty'
+curl -s "https://dns.cloudzy.com/dns-json?name=45.113.0.203.zen.spamhaus.org&type=A" | jq -r '.Answer[].data // empty'
 ```
 
 ---

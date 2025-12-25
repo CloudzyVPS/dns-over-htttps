@@ -31,13 +31,23 @@ export default {
       throw lastErr;
     }
 
-    // Decide mode by content-type or path
+    // Decide mode by content-type, path, or query params. We accept both `dns` (wire-format base64url)
+    // and `name` (JSON-style) query params to be compatible with common DoH providers.
     const ct = request.headers.get("content-type")?.toLowerCase() ?? "";
-    const isWire = ct.includes("application/dns-message") || url.pathname.endsWith("/dns-query");
-    const isJson = url.pathname.endsWith("/dns-json") || url.searchParams.has("name");
+
+    // Helper checks for params
+    const hasDnsParam = url.searchParams.has("dns");
+    const dnsParam = url.searchParams.get("dns");
+    const hasNameParam = url.searchParams.has("name");
+    const nameParam = url.searchParams.get("name");
+
+    // Path hints
+    const path = url.pathname;
+    const pathIsDnsQuery = path.endsWith("/dns-query");
+    const pathIsDnsJson = path.endsWith("/dns-json") || path.endsWith("/resolve");
 
     try {
-      if (request.method === "POST" && isWire) {
+      if (request.method === "POST" && ct.includes("application/dns-message")) {
         // Wire-format POST
         const body = await request.arrayBuffer();
         if (body.byteLength === 0) return badRequest("Empty DNS message");
@@ -56,14 +66,15 @@ export default {
         return passthroughWire(resp);
       }
 
-      if (request.method === "GET" && isWire) {
-        // Wire-format GET (RFC8484: ?dns= base64url)
-        const dnsParam = url.searchParams.get("dns");
-        if (!dnsParam) return badRequest("Missing dns param");
+      // Wire-format GET (RFC8484: ?dns= base64url)
+      if (request.method === "GET" && (pathIsDnsQuery || hasDnsParam)) {
+        // If the path is /dns-query we require either dns or name param (dns preferred); if dns missing -> 400
+        const dnsValue = dnsParam;
+        if (!dnsValue) return badRequest("Missing dns param");
 
         const resp = await tryUpstreams((up) => {
           const upstreamUrl = new URL(up);
-          upstreamUrl.searchParams.set("dns", dnsParam);
+          upstreamUrl.searchParams.set("dns", dnsValue);
           return fetch(new Request(upstreamUrl.toString(), {
             headers: { "accept": "application/dns-message" },
           }), { cf: { cacheTtl: 60 } });
@@ -72,11 +83,16 @@ export default {
         return passthroughWire(resp);
       }
 
-      if (request.method === "GET" && isJson) {
-        // JSON mode: ?name=example.com&type=A&cd=0&do=1
+      // JSON mode: ?name=example.com&type=A&cd=0&do=1
+      if (request.method === "GET" && (pathIsDnsJson || hasNameParam)) {
+        const nameValue = nameParam;
+        if (!nameValue) return badRequest("Missing name param");
+
         const resp = await tryUpstreams((up) => {
           const upstreamUrl = new URL(up);
-          upstreamUrl.searchParams.set("ct", "application/dns-json"); // hint
+          // hint that we want JSON formatted response
+          upstreamUrl.searchParams.set("ct", "application/dns-json");
+          // copy through original query params (name/type/etc) to upstream
           url.searchParams.forEach((v, k) => upstreamUrl.searchParams.set(k, v));
           return fetch(upstreamUrl.toString(), {
             headers: { "accept": "application/dns-json" },
@@ -102,7 +118,7 @@ export default {
       // Help page
       if (url.pathname === "/" || url.pathname === "/help") {
         return new Response(
-          `DoH Worker\n- Wire-format: GET/POST /dns-query (RFC8484)\n- JSON: GET /dns-json?name=mail.cloudzy.com&type=A (e.g., https://doh.cloudzy.com/dns-json?name=mail.cloudzy.com&type=A)\n- PTR (reverse) example: resolve mail.cloudzy.com then query PTR for its IP (see https://github.com/CloudzyVPS/dns-over-htttps)\n- Health: GET /health`,
+          `DoH Worker\n- Wire-format: GET/POST /dns-query (RFC8484)\n- JSON: GET /dns-json or /resolve ?name=mail.cloudzy.com&type=A (e.g., https://dns.cloudzy.com/resolve?name=mail.cloudzy.com&type=A)\n- PTR (reverse) example: resolve mail.cloudzy.com then query PTR for its IP (see README)\n- Health: GET /health`,
           { headers: { "content-type": "text/plain; charset=utf-8" } },
         );
       }

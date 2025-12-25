@@ -7,4 +7,4 @@ compatibility_date = "2024-09-10"
 
 # Routes omitted for workers.dev testing or choose to add routes below
 # [routes]
-# routes = [{ pattern = "doh.cloudzy.com/*", zone_name = "cloudzy.com" }]
+# routes = [{ pattern = "dns.cloudzy.com/*", zone_name = "cloudzy.com" }]
