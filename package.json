@@ -7,12 +7,15 @@
     "dev": "wrangler dev",
     "deploy": "wrangler publish",
     "build": "tsc --noEmit",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "jest"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.2025.0",
     "typescript": "^5.5.0",
-    "wrangler": "^4.0.0"
+    "wrangler": "^4.0.0",
+    "jest": "^29.0.0",
+    "ts-jest": "^29.0.0"
   },
   "license": "MIT"
 }
