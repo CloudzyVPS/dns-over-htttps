@@ -36,6 +36,68 @@ DNS-over-HTTPS (DoH) encrypts your DNS lookups using HTTPS, the same secure prot
 3. Enter: `dns.cloudzy.com`
 4. Save
 
+### For iOS Devices (iPhone/iPad)
+
+iOS requires a configuration profile to enable DNS-over-HTTPS. Follow these steps:
+
+**Option 1: Download a profile generator**
+1. Visit a DNS profile generator like [dns.notjakob.com](https://dns.notjakob.com) or similar
+2. Enter the DoH URL: `https://dns.cloudzy.com/dns-query`
+3. Download the generated `.mobileconfig` file
+4. Open the file on your iPhone/iPad
+5. Go to Settings → General → VPN & Device Management
+6. Tap on the downloaded profile and install it
+
+**Option 2: Manual profile creation**
+
+Save this as `cloudzy-doh.mobileconfig` and open it on your iOS device:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>PayloadContent</key>
+    <array>
+        <dict>
+            <key>DNSSettings</key>
+            <dict>
+                <key>DNSProtocol</key>
+                <string>HTTPS</string>
+                <key>ServerURL</key>
+                <string>https://dns.cloudzy.com/dns-query</string>
+            </dict>
+            <key>PayloadDisplayName</key>
+            <string>Cloudzy DNS over HTTPS</string>
+            <key>PayloadIdentifier</key>
+            <string>com.cloudzy.dns.doh</string>
+            <key>PayloadType</key>
+            <string>com.apple.dnsSettings.managed</string>
+            <key>PayloadUUID</key>
+            <string>A1B2C3D4-E5F6-7890-ABCD-EF1234567890</string>
+            <key>PayloadVersion</key>
+            <integer>1</integer>
+        </dict>
+    </array>
+    <key>PayloadDisplayName</key>
+    <string>Cloudzy DoH</string>
+    <key>PayloadIdentifier</key>
+    <string>com.cloudzy.dns</string>
+    <key>PayloadType</key>
+    <string>Configuration</string>
+    <key>PayloadUUID</key>
+    <string>12345678-90AB-CDEF-1234-567890ABCDEF</string>
+    <key>PayloadVersion</key>
+    <integer>1</integer>
+</dict>
+</plist>
+```
+
+After installing the profile:
+1. Go to Settings → General → VPN & Device Management
+2. Find and tap "Cloudzy DoH"
+3. Tap "Install" and enter your passcode if prompted
+
 ## Testing the Service
 
 You can test our DoH service directly in your browser. Here are some examples:
