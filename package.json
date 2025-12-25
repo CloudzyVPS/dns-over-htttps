@@ -8,7 +8,9 @@
     "deploy": "wrangler publish",
     "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "test": "jest"
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.2025.0",

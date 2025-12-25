@@ -1,8 +1,14 @@
-import { badRequest, internalError, notFound, healthResponse, helpResponse } from '../errorHandler';
+import { badRequest, internalError, notFound, healthResponse, payloadTooLarge } from '../errorHandler';
+import { helpResponse } from '../help';
 
 test('badRequest returns 400', () => {
   const resp = badRequest('fail');
   expect(resp.status).toBe(400);
+});
+
+test('payloadTooLarge returns 413', () => {
+  const resp = payloadTooLarge('too large');
+  expect(resp.status).toBe(413);
 });
 
 test('internalError returns 500', () => {
