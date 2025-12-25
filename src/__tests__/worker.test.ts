@@ -7,14 +7,13 @@ jest.mock('../passthroughWire');
 jest.mock('../cors');
 jest.mock('../validation');
 
-import { getUpstreams, buildUpstreamUrl } from '../upstreams';
+import { getUpstreams } from '../upstreams';
 import { passthroughWire } from '../passthroughWire';
 import { addCorsHeaders, handleCorsPreflight } from '../cors';
 import { validateBase64Url, validateDomainName, validateBodySize } from '../validation';
 
 // Type assertions for mocks
 const mockGetUpstreams = getUpstreams as jest.MockedFunction<typeof getUpstreams>;
-const mockBuildUpstreamUrl = buildUpstreamUrl as jest.MockedFunction<typeof buildUpstreamUrl>;
 const mockPassthroughWire = passthroughWire as jest.MockedFunction<typeof passthroughWire>;
 const mockAddCorsHeaders = addCorsHeaders as jest.MockedFunction<typeof addCorsHeaders>;
 const mockHandleCorsPreflight = handleCorsPreflight as jest.MockedFunction<typeof handleCorsPreflight>;
@@ -22,23 +21,20 @@ const mockValidateBase64Url = validateBase64Url as jest.MockedFunction<typeof va
 const mockValidateDomainName = validateDomainName as jest.MockedFunction<typeof validateDomainName>;
 const mockValidateBodySize = validateBodySize as jest.MockedFunction<typeof validateBodySize>;
 
+// Declare global for TypeScript
+declare const global: { fetch: jest.Mock };
+declare type ExecutionContext = any;
+
 describe('worker', () => {
   const mockEnv: Env = {};
   const mockCtx = {} as ExecutionContext;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (global as any).fetch = jest.fn() as jest.Mock;
+    global.fetch = jest.fn() as jest.Mock;
     
     // Default mock implementations
-    mockGetUpstreams.mockReturnValue([{
-      provider: 'test',
-      base: 'https://test.example.com',
-      wirePath: '/dns-query',
-      jsonPath: '/dns-json',
-    }]);
-    
-    mockBuildUpstreamUrl.mockReturnValue(new URL('https://test.example.com/dns-query'));
+    mockGetUpstreams.mockReturnValue(['https://test.example.com']);
     mockPassthroughWire.mockResolvedValue(new Response('test', { status: 200 }));
     mockAddCorsHeaders.mockImplementation((resp) => resp);
     mockHandleCorsPreflight.mockReturnValue(new Response(null, { status: 204 }));
@@ -67,12 +63,12 @@ describe('worker', () => {
       });
 
       const mockUpstreamResponse = new Response(body, { status: 200 });
-      ((global as any).fetch as jest.Mock).mockResolvedValue(mockUpstreamResponse);
+      global.fetch.mockResolvedValue(mockUpstreamResponse);
 
       await worker.fetch(request, mockEnv, mockCtx);
 
       expect(mockValidateBodySize).toHaveBeenCalledWith(body.byteLength);
-      expect((global as any).fetch).toHaveBeenCalled();
+      expect(global.fetch).toHaveBeenCalled();
       expect(mockPassthroughWire).toHaveBeenCalled();
       expect(mockAddCorsHeaders).toHaveBeenCalled();
     });
@@ -117,7 +113,7 @@ describe('worker', () => {
       await worker.fetch(request, mockEnv, mockCtx);
 
       expect(mockValidateBase64Url).toHaveBeenCalledWith(dnsParam);
-      expect((global as any).fetch).toHaveBeenCalled();
+      expect(global.fetch).toHaveBeenCalled();
       expect(mockPassthroughWire).toHaveBeenCalled();
       expect(mockAddCorsHeaders).toHaveBeenCalled();
     });
@@ -155,7 +151,7 @@ describe('worker', () => {
       const response = await worker.fetch(request, mockEnv, mockCtx);
 
       expect(mockValidateDomainName).toHaveBeenCalledWith('example.com');
-      expect((global as any).fetch).toHaveBeenCalled();
+      expect(global.fetch).toHaveBeenCalled();
       expect(mockAddCorsHeaders).toHaveBeenCalled();
       expect(response.status).toBe(200);
     });
@@ -221,8 +217,8 @@ describe('worker', () => {
   describe('upstream fallback', () => {
     it('tries next upstream on 500 error', async () => {
       mockGetUpstreams.mockReturnValue([
-        { provider: 'first', base: 'https://first.com', wirePath: '/dns-query', jsonPath: '/dns-json' },
-        { provider: 'second', base: 'https://second.com', wirePath: '/dns-query', jsonPath: '/dns-json' },
+        'https://first.com',
+        'https://second.com',
       ]);
 
       const body = new Uint8Array([1, 2, 3]);
@@ -235,19 +231,19 @@ describe('worker', () => {
       const errorResponse = new Response('Error', { status: 500 });
       const successResponse = new Response(body, { status: 200 });
 
-      ((global as any).fetch as jest.Mock)
+      global.fetch
         .mockResolvedValueOnce(errorResponse)
         .mockResolvedValueOnce(successResponse);
 
       await worker.fetch(request, mockEnv, mockCtx);
 
-      expect((global as any).fetch).toHaveBeenCalledTimes(2);
+      expect(global.fetch).toHaveBeenCalledTimes(2);
       expect(mockPassthroughWire).toHaveBeenCalledWith(successResponse);
     });
 
     it('throws error if all upstreams fail', async () => {
       mockGetUpstreams.mockReturnValue([
-        { provider: 'first', base: 'https://first.com', wirePath: '/dns-query', jsonPath: '/dns-json' },
+        'https://first.com',
       ]);
 
       const body = new Uint8Array([1, 2, 3]);
@@ -258,7 +254,7 @@ describe('worker', () => {
       });
 
       const errorResponse = new Response('Error', { status: 500 });
-      ((global as any).fetch as jest.Mock).mockResolvedValue(errorResponse);
+      global.fetch.mockResolvedValue(errorResponse);
 
       const response = await worker.fetch(request, mockEnv, mockCtx);
 
@@ -275,7 +271,7 @@ describe('worker', () => {
         body: new Uint8Array([1, 2, 3]),
       });
 
-      ((global as any).fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
+      global.fetch.mockRejectedValue(new Error('Network error'));
 
       const response = await worker.fetch(request, mockEnv, mockCtx);
 
@@ -290,7 +286,7 @@ describe('worker', () => {
         body: new Uint8Array([1, 2, 3]),
       });
 
-      ((global as any).fetch as jest.Mock).mockRejectedValue('String error');
+      global.fetch.mockRejectedValue('String error');
 
       const response = await worker.fetch(request, mockEnv, mockCtx);
 
