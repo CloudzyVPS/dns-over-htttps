@@ -1,4 +1,4 @@
-name = "dns-over-https"
+name = "dns-over-htttps"
 main = "src/worker.ts"
 compatibility_date = "2024-09-10"
 
