@@ -198,7 +198,107 @@ fetch('https://ip.cloudzy.com')
 
 Use this URL when configuring DoH in your applications or devices.
 
+---
+
+## Frequently Asked Questions
+
+### What is DNS-over-HTTPS and why should I care?
+
+DNS-over-HTTPS (DoH) is a technology that encrypts your DNS queries—the requests your device makes to find website addresses. Without DoH, these queries are sent in plain text, meaning anyone on your network (like your ISP, workplace, or a hacker on public WiFi) can see every website you try to visit.
+
+By using DoH, your browsing becomes private. Your DNS queries are wrapped in the same encryption used for online banking and shopping, so no one can snoop on your internet activity.
+
+
+### How can I protect my kids' privacy online, even from their school?
+
+Schools often monitor student internet activity through DNS logging and content filters. While this can help with safety, it also means detailed records of your child's browsing exist on school servers.
+
+At home, configure DoH on your family's devices to prevent your ISP from logging browsing activity. Teach your kids about the difference between school networks (monitored) and home networks (private with DoH). This helps them understand when their activity might be observed.
+
+### What's the simplest way to secure my phone's internet in 5 minutes?
+
+On Android: Go to Settings → Network & Internet → Advanced → Private DNS, select "Private DNS provider hostname," and enter `dns.cloudzy.com`. That's it—all DNS queries from your phone are now encrypted.
+
+On iPhone: You'll need to install a configuration profile (see our iOS setup guide above). Once installed, go to Settings → General → VPN & Device Management and enable the Cloudzy DoH profile. Your iPhone will now use encrypted DNS.
+
+### How do I set up encrypted DNS on all my devices?
+
+For browsers like Firefox and Chrome, go to settings and enable "DNS over HTTPS" or "Secure DNS" with the URL `https://dns.cloudzy.com/dns-query`. For Android, use the Private DNS setting with `dns.cloudzy.com`. For iOS, you'll need to install a configuration profile.
+
+Once configured, all DNS queries from that device or browser will be encrypted. You can verify it's working by visiting `https://dns.cloudzy.com/resolve?name=example.com&type=A` in your browser.
+
+### What can WiFi network owners actually see about my browsing?
+
+WiFi network owners can see: which devices connect, DNS queries (websites you visit), connection times, and how much data you transfer. If websites use HTTPS, they can't see the actual content—just that you visited that site.
+
+With DoH enabled, network owners can only see that you're connecting to dns.cloudzy.com. They can't see which specific websites you're visiting because the DNS queries are encrypted. This significantly improves your privacy on any network.
+
+### Is my hotel WiFi spying on me? How do I stay safe while traveling?
+
+Hotel WiFi networks can absolutely monitor your browsing activity through DNS logs. Some hotels even inject ads or tracking into your browsing. Since you're on their network, they control the DNS servers your device uses by default.
+
+Before connecting to hotel WiFi, make sure DoH is enabled on your devices. This encrypts your DNS queries so the hotel can't see which websites you visit. For extra security, also verify that websites you visit use HTTPS (look for the padlock icon).
+
+### How do I hide my browsing on public WiFi at airports or coffee shops?
+
+Public WiFi networks are notoriously insecure. The network operator—and potentially other users—can see your unencrypted DNS queries, revealing every website you visit. This is true even if the websites themselves use HTTPS.
+
+Enable DoH on your device before connecting to public WiFi. Your DNS queries will be encrypted, so the coffee shop, airport, or hotel can't log which sites you're browsing. Combined with HTTPS websites, your browsing activity stays private.
+
+### How does my ISP track every website I visit?
+
+Every time you type a website address, your device asks a DNS server to translate that name into an IP address. By default, your Internet Service Provider (ISP) handles these requests and can log every single one. They know exactly which websites you visit, when, and how often.
+
+ISPs can use this data to build profiles about you, sell your browsing history to advertisers, or even inject their own ads into your browsing. By switching to Cloudzy's encrypted DNS at dns.cloudzy.com, your ISP can no longer see or log your DNS queries.
+
+### How do I stop my internet provider from selling my browsing data?
+
+In many countries, ISPs are legally allowed to collect and sell your browsing history to advertisers. They do this primarily through DNS query logs, which reveal every website you visit. This data is valuable for targeted advertising.
+
+Switching to Cloudzy's DoH service removes your ISP from the equation. Your DNS queries are encrypted and sent directly to dns.cloudzy.com, bypassing your ISP's DNS servers entirely. They can no longer log or sell your browsing activity.
+
+### DNS-over-HTTPS vs VPN: Which one do I really need?
+
+A VPN encrypts all your internet traffic and hides your IP address, while DoH only encrypts your DNS queries. VPNs are more comprehensive but can slow down your connection and often cost money. DoH is free, lightweight, and focuses specifically on DNS privacy.
+
+For most users, DoH provides excellent privacy protection without the overhead of a VPN. If you need to hide your IP address or access region-locked content, use a VPN. If you just want to stop your ISP from tracking which websites you visit, DoH is the simpler solution.
+
+### How can I keep my searches private at school or work?
+
+Schools and workplaces often monitor network traffic, including DNS queries, to enforce acceptable use policies or track productivity. They can see every website you attempt to visit, even if you use private browsing mode.
+
+By configuring DoH in your browser, your DNS queries are encrypted and sent to dns.cloudzy.com instead of the school or company DNS server. Network administrators will see encrypted traffic but won't know which specific websites you're visiting.
+
+### Why does my school or office block certain websites?
+
+Organizations use DNS filtering to block websites they consider inappropriate, distracting, or dangerous. When you try to visit a blocked site, the DNS server returns an error or redirects you to a block page. This is one of the simplest ways to enforce content policies.
+
+Understanding how DNS blocking works helps you see why it's easily bypassed with DoH. When your DNS queries are encrypted and sent to an external server, the local network's DNS filters can't see or block your requests.
+
+### How do I browse privately on library computers and public networks?
+
+On shared or public computers, you often can't change system settings. However, you can configure DoH directly in your browser without admin access. In Firefox or Chrome, go to settings and enable secure DNS with `https://dns.cloudzy.com/dns-query`.
+
+This encrypts your DNS queries even on public computers. Remember that the computer itself may have monitoring software, so for sensitive browsing, use your own device with DoH enabled.
+
+### How does DoH help bypass internet censorship?
+
+Many countries and networks block websites by filtering DNS queries. When you try to visit a blocked site, the DNS server returns no result or a fake address. Traditional DNS blocking is easy to implement because queries are unencrypted and visible.
+
+DoH encrypts your queries so censors can't see which sites you're requesting. They only see encrypted HTTPS traffic to dns.cloudzy.com, making it much harder to block specific websites. This helps users access the open internet in restrictive environments.
+
+### What are DNS hijacking attacks and how does DoH protect me?
+
+DNS hijacking occurs when attackers intercept your DNS queries and return fake responses, redirecting you to malicious websites. This can happen through malware, compromised routers, or man-in-the-middle attacks on public WiFi. You might think you're visiting your bank's website, but you're actually on a phishing page.
+
+DoH prevents this by encrypting your DNS queries end-to-end. Attackers can't see or modify your DNS traffic because it's protected by HTTPS encryption, the same security used for sensitive websites.
+
+### How do I verify my mail server is properly configured?
+
+Use our DoH service to check your email-related DNS records. Query your domain's MX records to see your mail servers, TXT records for SPF, and specific DKIM selector records. You can also check PTR records to ensure reverse DNS is set up correctly.
+
+Proper email configuration prevents your messages from being marked as spam. If your PTR record doesn't match your sending domain, or if SPF/DKIM aren't configured, receiving servers may reject or flag your emails.
+
 ## Need Help?
 
-If you have questions or need assistance setting up DoH, please contact our support team. We're here to help you enjoy a more private and secure internet experience!
-
+If you have questions or need assistance setting up DoH, please contact our support team at <support@cloudzy.com>. We're here to help you enjoy a more private and secure internet experience!
