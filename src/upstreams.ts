@@ -8,24 +8,27 @@ export type Upstream = {
 };
 
 export const DEFAULT_UPSTREAMS: Upstream[] = [
+  // Cloudflare-style DNS-over-HTTPS endpoints
   {
     provider: "cloudflare",
     base: "https://cloudflare-dns.com",
     wirePath: "/dns-query",
-    jsonPath: "/dns-json"
+    jsonPath: "/dns-json" // Cloudflare JSON endpoint
   },
   {
     provider: "cloudflare-alt",
     base: "https://1.1.1.1",
     wirePath: "/dns-query",
-    jsonPath: "/dns-json"
+    jsonPath: "/dns-json" // Cloudflare JSON endpoint (alt IP)
   },
+  // Google-style DNS-over-HTTPS endpoint
   {
     provider: "google",
     base: "https://dns.google",
     wirePath: "/dns-query",
-    jsonPath: "/resolve"
+    jsonPath: "/resolve" // Google JSON endpoint
   },
+  // Quad9 (Cloudflare-style JSON)
   {
     provider: "quad9",
     base: "https://dns.quad9.net",

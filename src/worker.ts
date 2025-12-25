@@ -27,7 +27,8 @@ export default {
     }
 
     try {
-      // Wire-format POST
+      // Wire-format POST (Cloudflare/Google/Quad9 compatible)
+      // See RFC 8484 for wire-format POST
       if (req.method === "POST" && req.contentType.includes("application/dns-message")) {
         const body = await request.arrayBuffer();
         if (body.byteLength === 0) return badRequest("Empty DNS message");
@@ -44,7 +45,8 @@ export default {
         return passthroughWire(resp);
       }
 
-      // Wire-format GET
+      // Wire-format GET (Cloudflare/Google/Quad9 compatible)
+      // See RFC 8484 for wire-format GET
       if (req.method === "GET" && (req.pathIsDnsQuery || req.hasDnsParam)) {
         const dnsValue = req.dnsParam;
         if (!dnsValue) return badRequest("Missing dns param");
@@ -58,7 +60,8 @@ export default {
         return passthroughWire(resp);
       }
 
-      // JSON GET
+      // JSON GET (Cloudflare/dns.google style)
+      // Cloudflare: /dns-json, Google: /resolve, Quad9: /dns-query?ct=application/dns-json
       if (req.method === "GET" && (req.pathIsDnsJson || req.hasNameParam)) {
         const nameValue = req.nameParam;
         if (!nameValue) return badRequest("Missing name param");
