@@ -2,9 +2,8 @@ name = "dns-over-htttps"
 main = "src/worker.ts"
 compatibility_date = "2024-09-10"
 
-[vars]
-# Default upstream; override per environment if desired
-UPSTREAM = "https://cloudflare-dns.com/dns-query"
+# Optionally set UPSTREAM per environment to override built-in upstreams.
+# If omitted or empty, the Worker will try the bundled list of well-known DoH providers.
 
 # Routes omitted for workers.dev testing or choose to add routes below
 # [routes]
