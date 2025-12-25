@@ -86,6 +86,17 @@ FEATURES
 - Request size limit: ${MAX_DNS_MESSAGE_SIZE} bytes
 - Cache TTL: ${CACHE_TTL} seconds
 
+UPSTREAM PROVIDERS
+------------------
+
+The service automatically fails over between multiple upstream DNS-over-HTTPS providers:
+- Cloudflare (https://cloudflare-dns.com)
+- Cloudflare Alternative (https://1.1.1.1)
+- Google (https://dns.google)
+- Quad9 (https://dns.quad9.net)
+
+If one upstream fails, the service automatically tries the next one in sequence.
+
 ERROR RESPONSES
 ---------------
 

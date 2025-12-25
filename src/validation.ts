@@ -18,14 +18,22 @@ export function validateBase64Url(str: string): boolean {
 /**
  * Validates if a string is a valid domain name
  * Basic validation - allows most common domain name formats
+ * Rejects trailing dots, leading dots, and consecutive dots
  */
 export function validateDomainName(domain: string): boolean {
   if (!domain || domain.length === 0) return false;
   if (domain.length > 253) return false; // RFC 1035 max length
   
+  // Reject trailing dot
+  if (domain.endsWith('.')) return false;
+  // Reject leading dot
+  if (domain.startsWith('.')) return false;
+  // Reject consecutive dots
+  if (domain.includes('..')) return false;
+  
   // Basic domain name pattern: allows letters, numbers, dots, hyphens
   // More permissive than strict RFC, but catches obvious errors
-  const domainPattern = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.?$/;
+  const domainPattern = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
   return domainPattern.test(domain);
 }
 
