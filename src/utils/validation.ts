@@ -2,7 +2,7 @@
  * Input validation functions for DoH requests
  */
 
-import { MAX_DNS_MESSAGE_SIZE } from "./constants";
+import { MAX_DNS_MESSAGE_SIZE } from "../config/constants";
 
 /**
  * Validates if a string is valid base64url encoding (RFC 4648 Section 5)

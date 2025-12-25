@@ -61,3 +61,4 @@ describe('parseRequest', () => {
     expect(parsed.path).toBe('/dns-query');
   });
 });
+

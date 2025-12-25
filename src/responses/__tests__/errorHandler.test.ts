@@ -1,5 +1,4 @@
 import { badRequest, internalError, notFound, healthResponse, payloadTooLarge } from '../errorHandler';
-import { helpResponse } from '../help';
 
 test('badRequest returns 400', () => {
   const resp = badRequest('fail');
@@ -28,8 +27,3 @@ test('healthResponse returns ok json', async () => {
   expect(json.ok).toBe(true);
 });
 
-test('helpResponse returns text', async () => {
-  const resp = helpResponse();
-  expect(resp.status).toBe(200);
-  expect(resp.headers.get('content-type')).toMatch(/text\/plain/);
-});

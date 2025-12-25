@@ -2,7 +2,7 @@
  * Request parsing helpers for DoH worker
  */
 
-import { PATH_DNS_QUERY, PATH_DNS_JSON, PATH_RESOLVE, PARAM_DNS, PARAM_NAME, PARAM_CT, CONTENT_TYPE_DNS_JSON } from "./constants";
+import { PATH_DNS_QUERY, PATH_DNS_JSON, PATH_RESOLVE, PARAM_DNS, PARAM_NAME, PARAM_CT, CONTENT_TYPE_DNS_JSON } from "../config/constants";
 
 /**
  * Parsed request information extracted from HTTP request
@@ -53,3 +53,4 @@ export function parseRequest(request: Request): ParsedRequest {
     isJsonApi,
   };
 }
+

@@ -11,7 +11,6 @@ describe('help', () => {
     const resp = helpResponse();
     const text = await resp.text();
     
-    // Check for key sections
     expect(text).toContain('DNS-over-HTTPS');
     expect(text).toContain('Wire-format POST');
     expect(text).toContain('Wire-format GET');
@@ -24,13 +23,11 @@ describe('help', () => {
     expect(text).toContain('VALIDATION');
     expect(text).toContain('EXAMPLES');
     
-    // Check for endpoints
     expect(text).toContain('/dns-query');
     expect(text).toContain('/dns-json');
     expect(text).toContain('/resolve');
     expect(text).toContain('/health');
     
-    // Check for technical details
     expect(text).toContain('4096 bytes');
     expect(text).toContain('60 seconds');
     expect(text).toContain('Cloudflare');

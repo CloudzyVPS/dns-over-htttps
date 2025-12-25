@@ -11,7 +11,7 @@ import {
   CONTENT_TYPE_TEXT_PLAIN,
   MAX_DNS_MESSAGE_SIZE,
   CACHE_TTL,
-} from "./constants";
+} from "../config/constants";
 
 /**
  * Generates comprehensive help documentation for the DoH service

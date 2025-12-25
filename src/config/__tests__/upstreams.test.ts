@@ -17,3 +17,4 @@ describe('upstreams', () => {
     expect(result).toEqual(['https://custom.example.com']);
   });
 });
+

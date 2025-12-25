@@ -3,11 +3,11 @@
  * Supports RFC 8484 wire format and JSON API formats (Cloudflare/Google/Quad9 compatible)
  */
 
-import { getUpstreams } from "./upstreams";
-import { parseRequest } from "./requestParser";
-import { internalError } from "./errorHandler";
-import { addCorsHeaders, handleCorsPreflight } from "./cors";
-import { route, createTryUpstreams, RouteContext } from "./router";
+import { getUpstreams } from "./config/upstreams";
+import { parseRequest } from "./utils/requestParser";
+import { internalError } from "./responses/errorHandler";
+import { addCorsHeaders, handleCorsPreflight } from "./responses/cors";
+import { route } from "./routes";
 
 /**
  * Main worker export
@@ -29,16 +29,9 @@ export default {
     try {
       const req = parseRequest(request);
       const upstreams = getUpstreams(env);
-      const routeContext: RouteContext = {
-        request,
-        upstreams,
-        tryUpstreams: createTryUpstreams(upstreams),
-      };
-
-      const response = await route(req, routeContext);
+      const response = await route(req, request, upstreams);
       return addCorsHeaders(response);
     } catch (err: unknown) {
-      // Properly handle errors with type narrowing
       const errorMessage = err instanceof Error ? err.message : String(err);
       return addCorsHeaders(internalError(errorMessage || "Internal server error"));
     }
