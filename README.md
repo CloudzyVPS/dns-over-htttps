@@ -31,10 +31,17 @@ DNS-over-HTTPS (DoH) encrypts your DNS lookups using HTTPS, the same secure prot
 
 ### For Android Devices
 
-1. Go to Settings → Network & Internet → Advanced → Private DNS
-2. Select "Private DNS provider hostname"
-3. Enter: `dns.cloudzy.com`
-4. Save
+Android's system "Private DNS" setting uses **DNS-over-TLS (DoT)** (TLS on port 853). Cloudzy currently provides **DNS-over-HTTPS (DoH)** at `https://dns.cloudzy.com/dns-query`, which **will not** work if you set `dns.cloudzy.com` in Android's Private DNS.
+
+Options for using Cloudzy on Android:
+
+- **Per-app DoH (recommended):** Use a DoH-capable browser such as **Firefox for Android** and configure a custom DoH provider:
+  1. Open Firefox Settings → Privacy → Use DNS over HTTPS
+  2. Select **Custom** and enter: `https://dns.cloudzy.com/dns-query`
+
+- **DoH apps / VPN-based apps:** Use apps which support DoH and can route DNS traffic through `https://dns.cloudzy.com/dns-query` for system-like behavior.
+
+- **System-wide Private DNS (requires DoT):** To use Android's built-in Private DNS setting with the hostname `dns.cloudzy.com`, a **DoT server** (TLS on port 853) must be running and presenting a valid certificate for that hostname. This repository does **not** include a DoT server.
 
 ### For iOS Devices (iPhone/iPad)
 

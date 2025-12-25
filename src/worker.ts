@@ -5,13 +5,38 @@ export default {
     // RFC 8484 Section 4.1: DoH servers SHOULD support multiple upstream resolvers for redundancy
     // If UPSTREAM env var is set and non-empty, prefer it; otherwise use a built-in list of well-known DoH upstreams
     // All upstreams use RFC 8484 compliant /dns-query endpoints for wire-format queries
+    // DRY: Each upstream includes provider, base, wire path, json path
     const DEFAULT_UPSTREAMS = [
-      "https://cloudflare-dns.com/dns-query",  // Cloudflare DoH (RFC 8484 compliant)
-      "https://1.1.1.1/dns-query",              // Cloudflare DoH alternative endpoint (RFC 8484 compliant)
-      "https://dns.google/dns-query",           // Google DoH wire-format endpoint (RFC 8484 compliant)
-      "https://dns.quad9.net/dns-query",       // Quad9 DoH (RFC 8484 compliant)
+      {
+        provider: "cloudflare",
+        base: "https://cloudflare-dns.com",
+        wirePath: "/dns-query",
+        jsonPath: "/dns-json"
+      },
+      {
+        provider: "cloudflare-alt",
+        base: "https://1.1.1.1",
+        wirePath: "/dns-query",
+        jsonPath: "/dns-json"
+      },
+      {
+        provider: "google",
+        base: "https://dns.google",
+        wirePath: "/dns-query",
+        jsonPath: "/resolve"
+      },
+      {
+        provider: "quad9",
+        base: "https://dns.quad9.net",
+        wirePath: "/dns-query",
+        jsonPath: "/dns-query", // quad9 supports JSON via ct param
+        jsonCt: "application/dns-json"
+      }
     ];
-    const upstreams = env.UPSTREAM && env.UPSTREAM.trim() !== "" ? [env.UPSTREAM] : DEFAULT_UPSTREAMS;
+    // If UPSTREAM is set, use it as a custom provider
+    const upstreams = env.UPSTREAM && env.UPSTREAM.trim() !== ""
+      ? [{ provider: "custom", base: env.UPSTREAM, wirePath: "/dns-query", jsonPath: "/dns-query" }]
+      : DEFAULT_UPSTREAMS;
 
     // RFC 7231 Section 6.6: HTTP status codes 5xx indicate server errors
     // RFC 8484 Section 6: DoH clients SHOULD implement fallback mechanisms
@@ -63,120 +88,77 @@ export default {
     // Path hints for JSON-format endpoints (provider-specific extensions)
     const pathIsDnsJson = path.endsWith("/dns-json") || path.endsWith("/resolve");
 
-    try {
-      // RFC 8484 Section 4.1.1: POST requests MUST use application/dns-message content-type
-      // RFC 1035: DNS message format (wire-format binary encoding)
-      // RFC 7231 Section 4.3.3: POST method for sending request body
-      // This handles RFC 8484 compliant POST wire-format requests (Cloudflare-style, standard DoH)
-      if (request.method === "POST" && ct.includes("application/dns-message")) {
-        // RFC 8484 Section 4.1.1: POST body contains DNS message in wire format (RFC 1035)
-        // Wire-format POST - RFC 8484 standard method
-        const body = await request.arrayBuffer();
-        // RFC 7231 Section 6.5.1: 400 Bad Request for malformed requests
-        // RFC 8484 Section 6: Empty DNS messages are invalid
-        if (body.byteLength === 0) return badRequest("Empty DNS message");
+    // Upstream type for endpoint info
+    type Upstream = {
+      provider: string;
+      base: string;
+      wirePath: string;
+      jsonPath: string;
+      jsonCt?: string;
+    };
+    // DRY: Helper to build upstream URL for wire or JSON
+    function buildUpstreamUrl(upstream: Upstream, type: "wire" | "json"): URL {
+      const url = new URL(upstream.base);
+      if (type === "wire") {
+        url.pathname = upstream.wirePath;
+      } else {
+        url.pathname = upstream.jsonPath;
+        if (upstream.jsonCt) url.searchParams.set("ct", upstream.jsonCt);
+      }
+      return url;
+    }
 
-        // RFC 8484 Section 4.1: Forward to upstream DoH resolver
-        // RFC 8484 Section 4.1.1: POST requests MUST use application/dns-message content-type
-        // RFC 7231 Section 5.3.2: Accept header indicates response media type preference
-        const resp = await tryUpstreams((up) =>
-          fetch(new Request(up, {
+    try {
+      // Wire-format POST
+      if (request.method === "POST" && ct.includes("application/dns-message")) {
+        const body = await request.arrayBuffer();
+        if (body.byteLength === 0) return badRequest("Empty DNS message");
+        const resp = await tryUpstreams((upstream) =>
+          fetch(new Request(buildUpstreamUrl(upstream, "wire"), {
             method: "POST",
             headers: {
-              "content-type": "application/dns-message",  // RFC 8484 Section 4.1.1: Required content-type
-              "accept": "application/dns-message",        // RFC 7231 Section 5.3.2: Accept header
+              "content-type": "application/dns-message",
+              "accept": "application/dns-message",
             },
-            body,  // RFC 1035: DNS wire-format message
-          }), { cf: { cacheTtl: 60, cacheEverything: false } }),
+            body,
+          }), { cf: { cacheTtl: 60, cacheEverything: false } })
         );
-
-        // RFC 8484 Section 4.2: Response MUST be application/dns-message for wire-format
-        // RFC 7234 Section 5.2: Cache-Control header for caching directives
         return passthroughWire(resp);
       }
 
-      // RFC 8484 Section 4.1.1: GET requests use ?dns= parameter with base64url-encoded DNS message
-      // RFC 4648 Section 5: base64url encoding (URL-safe base64)
-      // RFC 8484 Section 4.1: Standard endpoint path is /dns-query
-      // This handles RFC 8484 compliant GET wire-format requests (Cloudflare-style, standard DoH)
-      // Wire-format GET (RFC8484: ?dns= base64url)
+      // Wire-format GET
       if (request.method === "GET" && (pathIsDnsQuery || hasDnsParam)) {
-        // RFC 8484 Section 4.1.1: GET requests require ?dns= parameter with base64url-encoded message
-        // RFC 8484 Section 4.1.1: Wire-format GET requests MUST use ?dns= parameter (base64url-encoded DNS message)
-        // Note: This handler ONLY accepts ?dns= parameter. For JSON format with ?name= parameter, use /resolve or /dns-json endpoints.
         const dnsValue = dnsParam;
-        // RFC 7231 Section 6.5.1: 400 Bad Request when required parameter is missing
-        // RFC 8484 Section 6: Missing dns parameter is invalid for wire-format GET
         if (!dnsValue) return badRequest("Missing dns param");
-
-        // RFC 8484 Section 4.1: Forward to upstream DoH resolver
-        // RFC 8484 Section 4.1.1: GET requests forward ?dns= parameter unchanged
-        const resp = await tryUpstreams((up) => {
-          const upstreamUrl = new URL(up);
-          // RFC 8484 Section 4.1.1: Forward dns parameter (base64url-encoded DNS message)
-          upstreamUrl.searchParams.set("dns", dnsValue);
-          return fetch(new Request(upstreamUrl.toString(), {
-            headers: { "accept": "application/dns-message" },  // RFC 7231 Section 5.3.2: Accept header
-          }), { cf: { cacheTtl: 60 } });  // RFC 7234 Section 5.2: Cache-Control
+        const resp = await tryUpstreams((upstream) => {
+          const url = buildUpstreamUrl(upstream, "wire");
+          url.searchParams.set("dns", dnsValue);
+          return fetch(new Request(url.toString(), {
+            headers: { "accept": "application/dns-message" },
+          }), { cf: { cacheTtl: 60 } });
         });
-
-        // RFC 8484 Section 4.2: Response MUST be application/dns-message for wire-format
         return passthroughWire(resp);
       }
 
-      // JSON mode: Non-standard extension, not part of RFC 8484
-      // Google JSON API: Uses /resolve endpoint with ?name=example.com&type=A parameters
-      // Cloudflare JSON API: Uses /dns-json endpoint with ?name=example.com&type=A parameters
-      // RFC 1035 Section 3.2.2: DNS record types (A, AAAA, MX, etc.)
-      // RFC 7231 Section 4.3.1: GET method for retrieving resources
-      // This handles provider-specific JSON format requests (Google-style and Cloudflare-style)
-      // JSON mode: ?name=example.com&type=A&cd=0&do=1
+      // JSON GET
       if (request.method === "GET" && (pathIsDnsJson || hasNameParam)) {
-        // Google JSON API: Requires ?name= parameter (non-RFC 8484, Google-specific)
-        // Cloudflare JSON API: Requires ?name= parameter (non-RFC 8484, Cloudflare-specific)
         const nameValue = nameParam;
-        // RFC 7231 Section 6.5.1: 400 Bad Request when required parameter is missing
-        // Missing name parameter is invalid for JSON format requests
         if (!nameValue) return badRequest("Missing name param");
-
-        // Forward JSON requests to appropriate upstream endpoints based on provider
-        const resp = await tryUpstreams((up) => {
-          const upstreamUrl = new URL(up);
-          // Convert upstream URL to appropriate JSON endpoint:
-          // - Google uses /resolve endpoint (Google-specific, non-RFC 8484)
-          // - Cloudflare uses /dns-json endpoint (Cloudflare-specific, non-RFC 8484)
-          // - Quad9 uses /dns-query with ct parameter (provider-specific extension)
-          const upstreamHost = upstreamUrl.hostname;
-          if (upstreamHost.includes("dns.google") || upstreamHost.includes("google")) {
-            // Google-style: use /resolve endpoint (Google JSON API, non-standard)
-            // Google's JSON API documentation: https://developers.google.com/speed/public-dns/docs/doh/json
-            upstreamUrl.pathname = "/resolve";
-          } else if (upstreamHost.includes("cloudflare") || upstreamHost === "1.1.1.1") {
-            // Cloudflare-style: use /dns-json endpoint (Cloudflare JSON API, non-standard)
-            // Cloudflare's JSON API documentation: https://developers.cloudflare.com/1.1.1.1/encryption/dns-over-https/make-api-requests/dns-json/
-            upstreamUrl.pathname = "/dns-json";
-          } else {
-            // For other providers (e.g., Quad9), try /dns-query with ct parameter
-            // Some providers support JSON via content-type negotiation (non-standard extension)
-            upstreamUrl.searchParams.set("ct", "application/dns-json");
-          }
-          // RFC 3986 Section 3.4: Query component contains name-value pairs
-          // RFC 1035 Section 3.2.2: DNS query parameters (name, type, cd, do, etc.)
-          // copy through original query params (name/type/etc) to upstream
-          url.searchParams.forEach((v, k) => upstreamUrl.searchParams.set(k, v));
-          return fetch(upstreamUrl.toString(), {
-            headers: { "accept": "application/dns-json" },  // RFC 7231 Section 5.3.2: Accept header for JSON
+        const resp = await tryUpstreams((upstream) => {
+          const url = buildUpstreamUrl(upstream, "json");
+          // Copy all query params
+          url.searchParams.forEach((v, k) => url.searchParams.delete(k));
+          // Copy from original request
+          (new URL(request.url)).searchParams.forEach((v, k) => url.searchParams.set(k, v));
+          return fetch(url.toString(), {
+            headers: { "accept": "application/dns-json" },
           });
         });
-
-        // RFC 7231 Section 3.1.1.5: Content-Type header indicates JSON response format
-        // RFC 8259: JSON format specification
-        // RFC 7234 Section 5.2: Cache-Control header for caching directives
         return new Response(await resp.text(), {
-          status: resp.status,  // RFC 7231 Section 6: HTTP status codes
+          status: resp.status,
           headers: {
-            "content-type": "application/dns-json; charset=utf-8",  // JSON content-type (non-RFC 8484)
-            "cache-control": resp.headers.get("cache-control") ?? "max-age=60",  // RFC 7234 Section 5.2
+            "content-type": "application/dns-json; charset=utf-8",
+            "cache-control": resp.headers.get("cache-control") ?? "max-age=60",
           },
         });
       }
