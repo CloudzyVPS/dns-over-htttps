@@ -14,3 +14,4 @@ export async function handleHelp(
   return req.path === PATH_ROOT || req.path === PATH_HELP ? helpResponse() : null;
 }
 
+

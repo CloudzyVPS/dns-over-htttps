@@ -23,7 +23,8 @@ test('notFound returns 404', () => {
 test('healthResponse returns ok json', async () => {
   const resp = healthResponse();
   expect(resp.status).toBe(200);
-  const json = await resp.json();
+  const json = await resp.json() as { ok: boolean; ts: number };
   expect(json.ok).toBe(true);
 });
+
 
